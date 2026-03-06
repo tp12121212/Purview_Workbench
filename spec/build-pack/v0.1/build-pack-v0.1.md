@@ -1,7 +1,3 @@
-Below is the **Build Pack v0.1** derived directly from the embedded Step-1 research in the attached source prompt. Every section is ready for copy into `spec/build-pack/v0.1/` in the repo. Assumptions, risks, and open issues are surfaced explicitly rather than silently resolved.[1]
-
-***
-
 # Build Pack v0.1 — Purview SIT/DLP Authoring Platform
 `spec/build-pack/v0.1/README.md`
 
@@ -1534,6 +1530,3 @@ GET    /api/v1/rulepacks/imported/{id}
 POST   /api/v1/jobs
 GET    /api/v1/jobs/{id}
 GET    /api/v1/jobs
-
-Sources
-[1] claude_step2_prompt_with_embedded_step1.md https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/143001045/3135ce78-dbf7-4542-940c-9106ebd057b9/claude_step2_prompt_with_embedded_step1.md?AWSAccessKeyId=ASIA2F3EMEYEUNZ76HNA&Signature=aryVauJivg%2FH6MfpLGMStk%2F%2Fo3U%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEBEaCXVzLWVhc3QtMSJHMEUCIFexfofwAXdpEzySxGhiuUi4%2Bk3ww7fx6xtlfMLSYLkkAiEA3LiP0d87iKgVevZ7XhXD1k3C4D8HFXuGij%2BJgqyJZe4q%2FAQI2v%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARABGgw2OTk3NTMzMDk3MDUiDPs%2BVIlKY77lb3FxVirQBNqn4m1i80CeqBbsc0S3cYcgmOJLDptqnpicj8CwCBc5PoPzrx1qKG9Hr72LbX%2FBtz81wgOPfNwHWladhv8Sw0mVGTFTz0jGTYqe%2BAe1DxKBHJ%2FnBj7t5BOIHHnV%2BmdtOgHYkGh1kwR5IRawTy9EjYnScOZoL3IBDqdJpMXDqNuhwymFjriwmVisIM10r%2F%2BHqRb6SMFlCG%2BtGAdhzTBsO3m4PUWQ6Cphr2yrfBGN%2B7wgHidfpPr8gPFnOroFkGorsTFQwa653LcK1vOERBgMwMYaDUppOTWM2RGgh5J5ChixaWfOSMA2Y2bSxR8Aln4oKZLyjceOWC6I8zUJb7eD5XuvaxaeF2mUXow%2BOn0vELzVCdQmsfzbrTwL1doIhKAcwingDCvGEnyjsGTvIdY71Ra4qK2hr%2F8Wa%2FJW7KbF1CrmIBeSINpZpWzjDIpL5FYJ3%2B3Fq41BUOoN8abFzMApqs7kOMTMvcqdYRN9LmPtCyw6eV6PaAVI4081Hd7Y4S3bRo5AK4pPT9chYgOnRFoiNnG%2BQHXgzXsKNcki4GXPjeO3SYMHstsWC7pZ47fx1NazTUlMSxTgBPCXfBDmxmKwtrg%2BIRqyBSQUFjqvbVkpouafgjtJkkQbEIJKuEwK%2BSuXeAJdjeOunJ8yLW4AqmWUU%2BnbmEYcTQ3v8NIVkModJ3cd39mZtpCKxlzBUPba4He%2BR8lgy5KU9K7DmdgSKtWlA4azUYXhJn9EAE5tBKwh1DgMSVp7qImt0oezvzuchEdZNhUEOKLkSbDcdjFYbCLgH6kwusqozQY6mAH0if6FiTLyTZBk%2FscIn%2FhQOpYzeaOphePpYm3AKmHxXHZtAgyEsJ3TCJo81Rv1NbhXi%2Bk13qKB2VZb2CvgaxBSRonOZWP3ugaJ0Zk%2F93X5ADxlKul1XWpjxaaarxYYJM%2BMtldGXRh0ym%2BzHkPDzgn9i52KdrnSKy3rS%2BHSZVhgd%2Bp0%2F79qQtoBTh8d1GjuSPbi8t%2FDu8XH4w%3D%3D&Expires=1772761284
