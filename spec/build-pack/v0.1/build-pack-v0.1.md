@@ -7,13 +7,13 @@
 
 ### Architecture in one paragraph
 
-A React SPA (`apps/web`) calls a stateless Node/FastAPI backend (`apps/api`). The backend enqueues short-lived PowerShell jobs onto Azure Service Bus. Containerized workers (`apps/worker`) pick up jobs, run `Connect-ExchangeOnline` or `Connect-IPPSSession` using a delegated token passed in the job payload, execute the requested cmdlets, and return structured JSON. All persistence flows through a single PostgreSQL database with row-level security (RLS) enforced on `tenant_id`. A vendor-owned multi-tenant Entra app handles auth; customers complete one-time admin consent. No customer-side app registration is required.[1]
+A React SPA (`apps/web`) calls a stateless Node/FastAPI backend (`apps/api`). The backend enqueues short-lived PowerShell jobs onto Azure Service Bus. Containerized workers (`apps/worker`) pick up jobs, run `Connect-ExchangeOnline` or `Connect-IPPSSession` using a delegated token passed in the job payload, execute the requested cmdlets, and return structured JSON. All persistence flows through a single PostgreSQL database with row-level security (RLS) enforced on `tenant_id`. A vendor-owned multi-tenant Entra app handles auth; customers complete one-time admin consent. No customer-side app registration is required.
 
 ### Why it satisfies feasibility findings
 
-- Delegated token + `-AccessToken` parameter on `Connect-ExchangeOnline` / `Connect-IPPSSession` is confirmed working for short-lived server-side use. Long-lived unattended execution is explicitly **not assumed**.[1]
-- `Export-DlpPolicyCollection` is retired for cloud tenants; DLP export is implemented via `Get-DlpCompliancePolicy` + `Get-DlpComplianceRule` + JSON serialization only.[1]
-- Containerized workers provide per-job isolation, per-tenant concurrency caps, and clean runspace teardown.[1]
+- Delegated token + `-AccessToken` parameter on `Connect-ExchangeOnline` / `Connect-IPPSSession` is confirmed working for short-lived server-side use. Long-lived unattended execution is explicitly **not assumed**.
+- `Export-DlpPolicyCollection` is retired for cloud tenants; DLP export is implemented via `Get-DlpCompliancePolicy` + `Get-DlpComplianceRule` + JSON serialization only.
+- Containerized workers provide per-job isolation, per-tenant concurrency caps, and clean runspace teardown.
 
 ### MVP vs Phase 2
 
@@ -61,7 +61,7 @@ Community library, reporting/tuning, what-if simulation, advanced NER assistance
 
 ### Explicitly Unsupported Behaviors
 
-- **Unattended delegated execution**: The system will not schedule or run PowerShell jobs on behalf of a user when no user session is active. This is by design — delegated tokens cannot reliably outlive MFA/CA policy enforcement without user interaction.[1]
+- **Unattended delegated execution**: The system will not schedule or run PowerShell jobs on behalf of a user when no user session is active. This is by design — delegated tokens cannot reliably outlive MFA/CA policy enforcement without user interaction.
 - **Token persistence beyond job lifetime**: Delegated access tokens are consumed and discarded after each job. Refresh tokens are **not** persisted in MVP.
 - **Background jobs exceeding token boundaries**: Any job requiring more than a single short-lived token exchange is out of scope for MVP.
 - **Cross-tenant data sharing**: No mechanism allows tenant A to read tenant B's workspace data.
