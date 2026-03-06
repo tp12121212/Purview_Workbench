@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "design-pack-v0.1",
+  "job": {
+    "id": "job-mock-0001",
+    "type": "test-data-classification",
+    "state": "completed"
+  },
+  "inputSummary": {
+    "source": "inline-text",
+    "characters": 482,
+    "lines": 9
+  },
+  "detections": [
+    {
+      "id": "det-001",
+      "templateId": "sit-us-ssn",
+      "matchText": "078-05-1120",
+      "confidence": 0.99,
+      "validator": "checksum-passed"
+    },
+    {
+      "id": "det-002",
+      "templateId": "sit-us-aba",
+      "matchText": "021000021",
+      "confidence": 0.96,
+      "validator": "checksum-passed"
+    }
+  ]
+}

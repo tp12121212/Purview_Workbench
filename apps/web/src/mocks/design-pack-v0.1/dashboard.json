@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "design-pack-v0.1",
+  "kpis": [
+    { "id": "kpi-01", "label": "Public SIT Templates", "value": 48 },
+    { "id": "kpi-02", "label": "Public DLP Templates", "value": 26 },
+    { "id": "kpi-03", "label": "Rule Pack Examples", "value": 12 },
+    { "id": "kpi-04", "label": "Mock Test Runs", "value": 314 }
+  ],
+  "recentTemplates": [
+    { "id": "dlp-pci-mail", "type": "DLP", "name": "PCI in Exchange Mail", "category": "Payments" },
+    { "id": "sit-us-aba", "type": "SIT", "name": "US ABA Routing Number", "category": "Financial" },
+    { "id": "sit-us-passport", "type": "SIT", "name": "US Passport Number", "category": "Identity" }
+  ]
+}
