@@ -108,3 +108,55 @@ def test_consent_complete_requires_admin() -> None:
     )
 
     assert response.status_code == 403
+
+
+def test_public_endpoints_are_anonymous() -> None:
+    client = _client()
+
+    metadata = client.get("/api/v1/public/metadata")
+    sit_library = client.get("/api/v1/public/library/sit")
+
+    assert metadata.status_code == 200
+    assert sit_library.status_code == 200
+
+
+def test_protected_job_endpoints_require_auth() -> None:
+    client = _client()
+
+    enqueue = client.post(
+        "/api/v1/jobs/test-text-extraction",
+        json={"tenant_id": "tenant-a", "file_name": "sample.txt", "text_sample": "hello"},
+    )
+    get_job = client.get("/api/v1/jobs/job-1")
+
+    assert enqueue.status_code == 401
+    assert get_job.status_code == 401
+
+
+def test_protected_job_endpoints_accept_authorized_requests() -> None:
+    client = _client()
+    token = _dev_token(
+        {
+            "sub": "user-3",
+            "tenant_id": "entra-tenant-3",
+            "is_admin": True,
+        }
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+
+    enqueue = client.post(
+        "/api/v1/jobs/test-data-classification",
+        headers=headers,
+        json={
+            "tenant_id": "tenant-a",
+            "text_sample": "document body",
+            "expected_labels": ["Confidential"],
+        },
+    )
+
+    assert enqueue.status_code == 200
+    job_id = enqueue.json()["jobId"]
+
+    get_job = client.get(f"/api/v1/jobs/{job_id}", headers=headers)
+    assert get_job.status_code == 200
+    assert get_job.json()["jobType"] == "TEST_DATA_CLASSIFICATION"
