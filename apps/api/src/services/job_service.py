@@ -7,24 +7,25 @@ class JobRecord:
     job_id: str
     tenant_id: str
     job_type: str
+    requested_by: str
     status: str = "QUEUED"
     payload: dict = field(default_factory=dict)
 
 
 class JobService:
-    """Phase 0 in-memory placeholder for queue integration."""
+    """Phase 2 in-memory protected job placeholder."""
 
     def __init__(self) -> None:
         self._jobs: dict[str, JobRecord] = {}
 
-    def enqueue(self, tenant_id: str, job_type: str, access_token: str, payload: dict) -> str:
-        _ = access_token  # token handling intentionally deferred to later phases
+    def enqueue(self, tenant_id: str, job_type: str, payload: dict, requested_by: str) -> str:
         job_id = str(uuid4())
         self._jobs[job_id] = JobRecord(
             job_id=job_id,
             tenant_id=tenant_id,
             job_type=job_type,
             payload=payload,
+            requested_by=requested_by,
         )
         return job_id
 
@@ -38,4 +39,5 @@ class JobService:
             "jobType": job.job_type,
             "status": job.status,
             "result": None,
+            "requestedBy": job.requested_by,
         }
