@@ -1,12 +1,9 @@
 import type { AuthSession, EntraAuthConfig } from '@purview/contracts';
 
-const SESSION_STORAGE_KEY = 'purview.auth.session';
-
-type StoredSession = {
-  userId: string;
-  email: string;
-  displayName: string;
-  tenantExternalId: string;
+let inMemorySession: AuthSession = {
+  isAuthenticated: false,
+  user: null,
+  accessToken: null
 };
 
 export function getEntraAuthConfig(): EntraAuthConfig {
@@ -18,48 +15,46 @@ export function getEntraAuthConfig(): EntraAuthConfig {
   };
 }
 
-function readStoredSession(): StoredSession | null {
-  const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
+function createDevToken(): string {
+  const payload = {
+    sub: 'demo-user-id',
+    email: 'admin@example.com',
+    name: 'Demo Admin',
+    tenant_id: 'demo-tenant-id',
+    is_admin: true
+  };
 
-  try {
-    return JSON.parse(raw) as StoredSession;
-  } catch {
-    return null;
-  }
+  const encoded = btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  return `dev.${encoded}`;
 }
 
 export function getAuthSession(): AuthSession {
-  const stored = readStoredSession();
-  if (!stored) {
-    return { isAuthenticated: false, user: null, accessToken: null };
-  }
-
-  return {
-    isAuthenticated: true,
-    accessToken: 'dev-token-placeholder',
-    user: {
-      userId: stored.userId,
-      email: stored.email,
-      displayName: stored.displayName,
-      tenantExternalId: stored.tenantExternalId
-    }
-  };
+  return inMemorySession;
 }
 
 export function signInSkeleton(): AuthSession {
-  const seededSession: StoredSession = {
-    userId: 'demo-user-id',
-    email: 'admin@example.com',
-    displayName: 'Demo Admin',
-    tenantExternalId: 'demo-tenant-id'
+  inMemorySession = {
+    isAuthenticated: true,
+    accessToken: createDevToken(),
+    user: {
+      userId: 'demo-user-id',
+      email: 'admin@example.com',
+      displayName: 'Demo Admin',
+      tenantExternalId: 'demo-tenant-id'
+    }
   };
-  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(seededSession));
-  return getAuthSession();
+
+  return inMemorySession;
 }
 
 export function signOutSkeleton(): void {
-  window.localStorage.removeItem(SESSION_STORAGE_KEY);
+  inMemorySession = {
+    isAuthenticated: false,
+    user: null,
+    accessToken: null
+  };
 }
