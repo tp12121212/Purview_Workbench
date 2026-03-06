@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "design-pack-v0.1",
+  "items": [
+    {
+      "id": "dlp-hr-pii-sharepoint",
+      "name": "HR PII in SharePoint",
+      "workloads": ["SharePoint", "OneDrive"],
+      "severity": "medium",
+      "mode": "audit",
+      "rules": 4
+    },
+    {
+      "id": "dlp-pci-mail",
+      "name": "PCI in Exchange Mail",
+      "workloads": ["Exchange"],
+      "severity": "high",
+      "mode": "enforce",
+      "rules": 5
+    },
+    {
+      "id": "dlp-source-code-teams",
+      "name": "Source Code in Teams",
+      "workloads": ["Teams"],
+      "severity": "medium",
+      "mode": "audit",
+      "rules": 3
+    }
+  ]
+}

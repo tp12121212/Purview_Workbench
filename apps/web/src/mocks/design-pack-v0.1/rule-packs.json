@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "design-pack-v0.1",
+  "items": [
+    {
+      "id": "rp-finance-core",
+      "name": "Finance Core Pack",
+      "version": "1.0.0",
+      "sitCount": 6,
+      "dlpCount": 4,
+      "summary": "Core finance sensitive types and baseline policies."
+    },
+    {
+      "id": "rp-hr-global",
+      "name": "HR Global Pack",
+      "version": "1.0.0",
+      "sitCount": 5,
+      "dlpCount": 3,
+      "summary": "Employee identity and HR document safeguards."
+    }
+  ]
+}
