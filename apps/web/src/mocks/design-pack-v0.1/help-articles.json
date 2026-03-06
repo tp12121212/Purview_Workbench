@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "design-pack-v0.1",
+  "articles": [
+    {
+      "id": "help-auth-consent",
+      "title": "Why sign-in is only required for protected actions",
+      "summary": "Browse templates publicly, then sign in only when executing tenant-scoped operations."
+    },
+    {
+      "id": "help-rule-packs",
+      "title": "Rule pack import/export basics",
+      "summary": "Understand structure, compatibility, and safe rollout patterns."
+    },
+    {
+      "id": "help-test-console",
+      "title": "Using the Test Console",
+      "summary": "Prepare input anonymously, then authenticate to run extraction/classification jobs."
+    }
+  ]
+}
