@@ -1,0 +1,14 @@
+[project]
+name = "purview-api"
+version = "0.1.0"
+description = "Phase 0 FastAPI scaffold"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn>=0.30.6",
+  "pydantic>=2.9.2"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

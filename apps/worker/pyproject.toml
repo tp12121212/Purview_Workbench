@@ -1,0 +1,6 @@
+[project]
+name = "purview-worker"
+version = "0.1.0"
+description = "Phase 0 worker scaffold"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.9.2"]
