@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "design-pack-v0.1",
+  "items": [
+    {
+      "id": "sit-eu-iban",
+      "name": "EU IBAN",
+      "category": "Financial",
+      "region": "EU",
+      "confidence": "high",
+      "patterns": 3,
+      "keywords": ["iban", "bank account", "swift"]
+    },
+    {
+      "id": "sit-us-aba",
+      "name": "US ABA Routing Number",
+      "category": "Financial",
+      "region": "US",
+      "confidence": "high",
+      "patterns": 2,
+      "keywords": ["routing", "aba", "bank"]
+    },
+    {
+      "id": "sit-us-ssn",
+      "name": "US Social Security Number",
+      "category": "Identity",
+      "region": "US",
+      "confidence": "high",
+      "patterns": 3,
+      "keywords": ["ssn", "social security", "taxpayer"]
+    }
+  ]
+}

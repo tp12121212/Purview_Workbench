@@ -1,220 +1,213 @@
-import { useEffect, useState } from 'react';
-import type {
-  AuthState,
-  ProtectedAction,
-  PublicAppMetadata,
-  PublicLibraryItem,
-  TenantConsentStatus
-} from '@purview/contracts';
+import { useEffect, useMemo, useState } from 'react';
+import type { AuthSession, ProtectedAction, TenantConsentStatus } from '@purview/contracts';
+import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
-import { fetchPublicDlpLibrary, fetchPublicMetadata, fetchPublicSitLibrary } from './api/publicApi';
-import {
-  fetchJobStatus,
-  runTestDataClassification,
-  runTestTextExtraction
-} from './api/protectedJobsApi';
-import { fetchConsentStatus } from './api/tenantOnboardingApi';
 import { AuthStatus } from './auth/AuthStatus';
-import { getAuthSession, getEntraAuthConfig, signInSkeleton, signOutSkeleton } from './auth/msalClient';
+import { getAuthSession, signInSkeleton, signOutSkeleton } from './auth/msalClient';
+import dashboardData from './mocks/design-pack-v0.1/dashboard.json';
+import dlpLibraryData from './mocks/design-pack-v0.1/dlp-library.json';
+import helpArticlesData from './mocks/design-pack-v0.1/help-articles.json';
+import rulePacksData from './mocks/design-pack-v0.1/rule-packs.json';
+import sitLibraryData from './mocks/design-pack-v0.1/sit-library.json';
+import testResultData from './mocks/design-pack-v0.1/test-console-results.json';
+import type { DashboardData, DlpLibraryData, HelpArticlesData, RulePacksData, SitLibraryData, TestConsoleResults } from './types';
 
-const NAV_ITEMS = ['home', 'sit-library', 'dlp-library', 'rule-packs', 'test-console', 'help'] as const;
-type NavItem = (typeof NAV_ITEMS)[number];
+type GateRequest = { action: ProtectedAction; returnTo: string } | null;
 
-export function App() {
-  const [authState, setAuthState] = useState<AuthState>({
-    session: getAuthSession(),
-    pendingProtectedAction: null
-  });
-  const [activePage, setActivePage] = useState<NavItem>('home');
-  const [consentStatus, setConsentStatus] = useState<TenantConsentStatus | null>(null);
-  const [publicSitItems, setPublicSitItems] = useState<PublicLibraryItem[]>([]);
-  const [publicDlpItems, setPublicDlpItems] = useState<PublicLibraryItem[]>([]);
-  const [metadata, setMetadata] = useState<PublicAppMetadata | null>(null);
-  const [jobMessage, setJobMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+type JobState = 'idle' | 'queued' | 'running' | 'completed' | 'failed';
 
-  const authConfig = getEntraAuthConfig();
+const themeStorageKey = 'purview-theme';
 
-  useEffect(() => {
-    void fetchPublicMetadata().then(setMetadata).catch((err: Error) => setError(err.message));
-    void fetchPublicSitLibrary().then(setPublicSitItems).catch((err: Error) => setError(err.message));
-    void fetchPublicDlpLibrary().then(setPublicDlpItems).catch((err: Error) => setError(err.message));
-  }, []);
+function useThemePreference() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    (localStorage.getItem(themeStorageKey) as 'light' | 'dark' | null) ?? 'light'
+  );
 
   useEffect(() => {
-    if (!authState.session.isAuthenticated || !authState.session.accessToken) {
-      setConsentStatus(null);
-      return;
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
+
+  return { theme, toggleTheme: () => setTheme((current) => (current === 'light' ? 'dark' : 'light')) };
+}
+
+function useProtectedActionGate(
+  session: AuthSession,
+  consent: TenantConsentStatus | null,
+  setGateRequest: (request: GateRequest) => void
+) {
+  const location = useLocation();
+
+  const requestAction = (action: ProtectedAction): 'allowed' | 'auth-required' | 'consent-required' => {
+    if (!session.isAuthenticated) {
+      setGateRequest({ action, returnTo: location.pathname });
+      return 'auth-required';
     }
-
-    if (
-      authState.pendingProtectedAction === 'VIEW_TENANT_CONSENT_STATUS' ||
-      authState.pendingProtectedAction === 'RUN_TEST_TEXT_EXTRACTION' ||
-      authState.pendingProtectedAction === 'RUN_TEST_DATA_CLASSIFICATION'
-    ) {
-      void fetchConsentStatus(authState.session.accessToken)
-        .then((status) => {
-          setConsentStatus(status);
-          setError(null);
-        })
-        .catch((err: Error) => setError(err.message));
+    if (!consent?.consentCompleted) {
+      setGateRequest({ action, returnTo: '/settings/tenant' });
+      return 'consent-required';
     }
-  }, [authState.pendingProtectedAction, authState.session.accessToken, authState.session.isAuthenticated]);
-
-  async function runProtectedAction(action: ProtectedAction) {
-    if (!authState.session.isAuthenticated || !authState.session.accessToken || !authState.session.user) {
-      setAuthState((current) => ({
-        ...current,
-        pendingProtectedAction: action
-      }));
-      return;
-    }
-
-    if (!consentStatus?.consentCompleted) {
-      setAuthState((current) => ({ ...current, pendingProtectedAction: action }));
-      return;
-    }
-
-    if (action === 'RUN_TEST_TEXT_EXTRACTION') {
-      const queued = await runTestTextExtraction(authState.session.accessToken, {
-        tenantId: authState.session.user.tenantExternalId,
-        fileName: 'sample.txt',
-        textSample: 'This is a placeholder extraction sample.'
-      });
-      const status = await fetchJobStatus(authState.session.accessToken, queued.jobId);
-      setJobMessage(`${status.jobType} job ${status.jobId} is ${status.status}`);
-      return;
-    }
-
-    if (action === 'RUN_TEST_DATA_CLASSIFICATION') {
-      const queued = await runTestDataClassification(authState.session.accessToken, {
-        tenantId: authState.session.user.tenantExternalId,
-        textSample: 'Sample classified text payload',
-        expectedLabels: ['Confidential']
-      });
-      const status = await fetchJobStatus(authState.session.accessToken, queued.jobId);
-      setJobMessage(`${status.jobType} job ${status.jobId} is ${status.status}`);
-    }
-  }
-
-
-  useEffect(() => {
-    if (authState.session.isAuthenticated && authState.pendingProtectedAction) {
-      setActivePage('test-console');
-    }
-  }, [authState.pendingProtectedAction, authState.session.isAuthenticated]);
-
-  const signInAndResume = async () => {
-    const nextSession = signInSkeleton();
-    setAuthState((current) => ({
-      ...current,
-      session: nextSession
-    }));
+    return 'allowed';
   };
 
-  const renderPage = () => {
-    if (activePage === 'home') {
-      return <p>Public dashboard for browsing templates and learning how protected tenant actions work.</p>;
-    }
-    if (activePage === 'sit-library') {
-      return (
-        <section>
-          <h2>Public SIT templates</h2>
-          <ul>
-            {publicSitItems.map((item) => (
-              <li key={item.id}>
-                <strong>{item.title}</strong>: {item.summary}
-              </li>
-            ))}
-          </ul>
-        </section>
-      );
-    }
-    if (activePage === 'dlp-library') {
-      return (
-        <section>
-          <h2>Public DLP templates</h2>
-          <ul>
-            {publicDlpItems.map((item) => (
-              <li key={item.id}>
-                <strong>{item.title}</strong>: {item.summary}
-              </li>
-            ))}
-          </ul>
-        </section>
-      );
-    }
-    if (activePage === 'rule-packs') {
-      return <p>Rule packs can be imported/exported after signing in and connecting tenant consent.</p>;
-    }
-    if (activePage === 'help') {
-      return <p>How it works: browse publicly, then authenticate only when running tenant-protected actions.</p>;
-    }
+  return { requestAction };
+}
 
-    return (
-      <section>
-        <h2>Protected test console</h2>
-        <p>Viewable publicly. Running tests requires auth and tenant consent.</p>
-        <button onClick={() => void runProtectedAction('RUN_TEST_TEXT_EXTRACTION')} type="button">
-          Run Test-TextExtraction
-        </button>
-        <button onClick={() => void runProtectedAction('RUN_TEST_DATA_CLASSIFICATION')} type="button">
-          Run Test-DataClassification
-        </button>
-        {jobMessage && <p>{jobMessage}</p>}
-      </section>
-    );
+const navItems = [
+  ['/', 'Home'],
+  ['/sit-library', 'SIT Library'],
+  ['/dlp-library', 'DLP Library'],
+  ['/rule-packs', 'Rule Packs'],
+  ['/test-console', 'Test Console'],
+  ['/help', 'Help'],
+  ['/settings', 'Settings']
+] as const;
+
+export function App() {
+  const navigate = useNavigate();
+  const [session, setSession] = useState<AuthSession>(getAuthSession());
+  const [consentStatus, setConsentStatus] = useState<TenantConsentStatus | null>(null);
+  const [gateRequest, setGateRequest] = useState<GateRequest>(null);
+  const [jobState, setJobState] = useState<JobState>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const { theme, toggleTheme } = useThemePreference();
+
+  const gate = useProtectedActionGate(session, consentStatus, setGateRequest);
+
+  const data = useMemo(
+    () => ({
+      dashboard: dashboardData as DashboardData,
+      sit: sitLibraryData as SitLibraryData,
+      dlp: dlpLibraryData as DlpLibraryData,
+      rules: rulePacksData as RulePacksData,
+      help: helpArticlesData as HelpArticlesData,
+      testResult: testResultData as TestConsoleResults
+    }),
+    []
+  );
+
+  const signInAndResume = () => {
+    const nextSession = signInSkeleton();
+    setSession(nextSession);
+    if (!consentStatus) {
+      setConsentStatus({ tenantId: nextSession.user?.tenantExternalId ?? 'demo-tenant-id', consentCompleted: false, consentCompletedAt: null });
+    }
+    if (gateRequest) {
+      navigate(gateRequest.returnTo);
+    }
   };
 
   return (
-    <main>
-      <h1>Purview Workbench</h1>
-      <p>Phase 2 public-first shell with protected action gating.</p>
-      <p>
-        Entra authority: <code>{authConfig.authority || 'not configured'}</code>
-      </p>
-      {metadata && (
-        <p>
-          {metadata.productName} · support: {metadata.supportEmail}
-        </p>
-      )}
-
-      <AuthStatus
-        session={authState.session}
-        onSignIn={() => void signInAndResume()}
-        onSignOut={() => {
-          signOutSkeleton();
-          setAuthState({ session: getAuthSession(), pendingProtectedAction: null });
-          setConsentStatus(null);
-          setJobMessage(null);
-        }}
-      />
-
-      {authState.pendingProtectedAction && !authState.session.isAuthenticated && (
-        <section role="alert">
-          <p>Sign in required for protected action: {authState.pendingProtectedAction}</p>
-          <button onClick={() => void signInAndResume()} type="button">
-            Continue with sign in
-          </button>
-        </section>
-      )}
-
-      {authState.session.isAuthenticated && authState.pendingProtectedAction && consentStatus && !consentStatus.consentCompleted && (
-        <section role="alert">
-          <p>Tenant admin consent is required before running protected tenant operations.</p>
-        </section>
-      )}
-
-      <nav aria-label="Public navigation">
-        {NAV_ITEMS.map((item) => (
-          <button key={item} onClick={() => setActivePage(item)} type="button">
-            {item}
-          </button>
-        ))}
-      </nav>
-
-      {error && <p role="alert">{error}</p>}
-      {renderPage()}
-    </main>
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="brand">Purview Workbench</div>
+        <nav className="nav" aria-label="Primary">
+          {navItems.map(([path, label]) => (
+            <NavLink key={path} to={path} className={({ isActive }) => (isActive ? 'active' : '')} end={path === '/'}>
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+      <div className="main">
+        <header className="topbar">
+          <div>Public-first compliance automation shell</div>
+          <div className="actions">
+            <button className="btn" onClick={toggleTheme} type="button">Theme: {theme}</button>
+            <AuthStatus session={session} onSignIn={signInAndResume} onSignOut={() => { signOutSkeleton(); setSession(getAuthSession()); setConsentStatus(null); }} compact />
+          </div>
+        </header>
+        <main className="content">
+          {error ? <div className="alert error">{error}</div> : null}
+          {gateRequest && !session.isAuthenticated ? (
+            <div className="alert" role="alert">Sign in required for protected action: {gateRequest.action}</div>
+          ) : null}
+          <Routes>
+            <Route path="/" element={<HomePage data={data.dashboard} />} />
+            <Route path="/sit-library" element={<SitLibraryPage data={data.sit} />} />
+            <Route path="/dlp-library" element={<DlpLibraryPage data={data.dlp} />} />
+            <Route path="/rule-packs" element={<RulePacksPage data={data.rules} gate={gate} />} />
+            <Route path="/test-console" element={<TestConsolePage data={data.testResult} gate={gate} jobState={jobState} setJobState={setJobState} />} />
+            <Route path="/help" element={<HelpPage data={data.help} />} />
+            <Route path="/settings" element={<SettingsGuard session={session} />}>
+              <Route index element={<SettingsIndex consentStatus={consentStatus} />} />
+              <Route path="tenant" element={<TenantPage consentStatus={consentStatus} onConnect={() => setConsentStatus({ tenantId: session.user?.tenantExternalId ?? 'demo-tenant-id', consentCompleted: true, consentCompletedAt: null })} />} />
+              <Route path="consent" element={<ConsentPage consentStatus={consentStatus} />} />
+            </Route>
+            <Route path="/sit-editor" element={<PlaceholderPage title="SIT Editor" />} />
+            <Route path="/dlp-builder" element={<PlaceholderPage title="DLP Builder" />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
   );
+}
+
+function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  return <header className="page-header"><h1>{title}</h1><p>{subtitle}</p></header>;
+}
+
+function HomePage({ data }: { data: DashboardData }) {
+  return <section><PageHeader title="Home / Dashboard" subtitle="Browse public content and run tenant actions only when needed." /><div className="grid kpi">{data.kpis.map((kpi) => <article className="card" key={kpi.id}><div>{kpi.label}</div><div className="kpi-value">{kpi.value}</div></article>)}</div><div className="card" style={{ marginTop: 16 }}><h3>Recently viewed templates</h3>{data.recentTemplates.map((item) => <div key={item.id}>{item.name} <span className="badge">{item.type}</span></div>)}</div></section>;
+}
+
+function SitLibraryPage({ data }: { data: SitLibraryData }) {
+  const [query, setQuery] = useState('');
+  const items = data.items.filter((item) => item.name.toLowerCase().includes(query.toLowerCase()) || item.category.toLowerCase().includes(query.toLowerCase()));
+  return <section><PageHeader title="Public SIT Library" subtitle="Search deterministic templates by region and category." /><div className="card"><div className="toolbar"><input className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search SIT templates" /></div><table className="table"><thead><tr><th>Name</th><th>Category</th><th>Region</th><th>Patterns</th><th>Keywords</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td>{item.name}</td><td>{item.category}</td><td>{item.region}</td><td>{item.patterns}</td><td>{item.keywords.join(', ')}</td></tr>)}</tbody></table></div></section>;
+}
+
+function DlpLibraryPage({ data }: { data: DlpLibraryData }) {
+  const [query, setQuery] = useState('');
+  const items = data.items.filter((item) => item.name.toLowerCase().includes(query.toLowerCase()) || item.workloads.join(' ').toLowerCase().includes(query.toLowerCase()));
+  return <section><PageHeader title="Public DLP Library" subtitle="Browse policy templates by workload and mode." /><div className="card"><div className="toolbar"><input className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search DLP templates" /></div><table className="table"><thead><tr><th>Name</th><th>Workloads</th><th>Severity</th><th>Mode</th><th>Rules</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td>{item.name}</td><td>{item.workloads.join(', ')}</td><td><span className={`badge ${item.severity === 'high' ? 'error' : 'warning'}`}>{item.severity}</span></td><td>{item.mode}</td><td>{item.rules}</td></tr>)}</tbody></table></div></section>;
+}
+
+function RulePacksPage({ data, gate }: { data: RulePacksData; gate: { requestAction: (action: ProtectedAction) => 'allowed' | 'auth-required' | 'consent-required' } }) {
+  return <section><PageHeader title="Rule Packs" subtitle="Learn the pack model and gate import/export tenant actions." /><div className="grid two">{data.items.map((item) => <article className="card" key={item.id}><h3>{item.name}</h3><p>{item.summary}</p><p><span className="badge">SIT {item.sitCount}</span> <span className="badge">DLP {item.dlpCount}</span></p></article>)}</div><div className="card" style={{ marginTop: 16 }}><button className="btn primary" onClick={() => gate.requestAction('SYNC_TENANT_ARTIFACTS')} type="button">Protected: Import/Export</button></div></section>;
+}
+
+function TestConsolePage({ data, gate, jobState, setJobState }: { data: TestConsoleResults; gate: { requestAction: (action: ProtectedAction) => 'allowed' | 'auth-required' | 'consent-required' }; jobState: JobState; setJobState: (state: JobState) => void }) {
+  const navigate = useNavigate();
+  const [input, setInput] = useState('SSN 078-05-1120 and ABA 021000021');
+  const onRun = () => {
+    const result = gate.requestAction('RUN_TEST_DATA_CLASSIFICATION');
+    if (result === 'consent-required') {
+      navigate('/settings/tenant');
+      return;
+    }
+    if (result !== 'allowed') {
+      return;
+    }
+    setJobState('queued');
+    setTimeout(() => setJobState('running'), 50);
+    setTimeout(() => setJobState('completed'), 100);
+  };
+  return <section><PageHeader title="Test Console" subtitle="Prepare input publicly and execute with protected tenant auth and consent." /><div className="grid two"><div className="card"><h3>Input</h3><textarea className="textarea" value={input} onChange={(e) => setInput(e.target.value)} /><div style={{ marginTop: 10 }}><button className="btn primary" onClick={onRun} type="button">Run Test-DataClassification</button></div></div><div className="card"><h3>Result + Job timeline</h3><p><span className={`badge ${jobState === 'completed' ? 'success' : jobState === 'failed' ? 'error' : 'warning'}`}>State: {jobState === 'idle' ? data.job.state : jobState}</span></p><p>Job ID: {data.job.id}</p><table className="table"><thead><tr><th>Template</th><th>Match</th><th>Confidence</th></tr></thead><tbody>{data.detections.map((det) => <tr key={det.id}><td>{det.templateId}</td><td>{det.matchText}</td><td>{det.confidence}</td></tr>)}</tbody></table></div></div></section>;
+}
+
+function HelpPage({ data }: { data: HelpArticlesData }) {
+  return <section><PageHeader title="Help / Docs / How it works" subtitle="Understand auth-on-demand and consent requirements." /><div className="grid two">{data.articles.map((article) => <article className="card" key={article.id}><h3>{article.title}</h3><p>{article.summary}</p></article>)}</div></section>;
+}
+
+function SettingsGuard({ session }: { session: AuthSession }) {
+  const location = useLocation();
+  if (!session.isAuthenticated) {
+    return <div className="alert">Settings requires sign in. Return to public pages and authenticate when ready. ({location.pathname})</div>;
+  }
+  return <Outlet />;
+}
+
+function SettingsIndex({ consentStatus }: { consentStatus: TenantConsentStatus | null }) {
+  return <section><PageHeader title="Settings" subtitle="Tenant-scoped session and connection controls." /><div className="card">Consent state: {consentStatus?.consentCompleted ? 'Connected' : 'Consent required'}</div></section>;
+}
+function TenantPage({ consentStatus, onConnect }: { consentStatus: TenantConsentStatus | null; onConnect: () => void }) {
+  return <section><PageHeader title="Tenant Connection" subtitle="Complete admin consent to unlock protected actions." /><div className="card"><p>Status: <span className={`badge ${consentStatus?.consentCompleted ? 'success' : 'warning'}`}>{consentStatus?.consentCompleted ? 'Consent complete' : 'Consent required'}</span></p>{!consentStatus?.consentCompleted ? <button className="btn primary" onClick={onConnect} type="button">Mark consent complete</button> : null}</div></section>;
+}
+function ConsentPage({ consentStatus }: { consentStatus: TenantConsentStatus | null }) {
+  return <section><PageHeader title="Consent Status" subtitle="Review why consent is required for tenant execution." /><div className="card">{consentStatus?.consentCompleted ? 'All tenant scopes approved.' : 'Missing admin consent for protected execution. Go to Tenant Connection.'}</div></section>;
+}
+function PlaceholderPage({ title }: { title: string }) {
+  return <section><PageHeader title={title} subtitle="Future module placeholder for later phase." /><div className="card">This area remains intentionally non-functional in Phase A.</div></section>;
 }
