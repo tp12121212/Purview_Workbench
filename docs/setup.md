@@ -88,6 +88,7 @@ If validation fails, the script shows remediation commands and prompts to:
 - quit setup
 
 Note: if `az ad sp create` returns "service principal name ... is already in use", treat this as an already-existing service principal for this app and continue.
+For existing apps with no permission entries, setup offers to add baseline delegated Microsoft Graph permissions.
 
 ### Flow B: Create new app registration
 
@@ -98,6 +99,7 @@ Uses Azure CLI (`az`) to:
 - configure required redirect URIs
 - configure identifier URI (API audience)
 - ensure service principal exists
+- add baseline delegated Microsoft Graph permissions (`openid`, `profile`, `email`, `offline_access`, `User.Read`)
 - validate created registration with the same checks as Flow A
 
 If any required step cannot be validated, setup fails with actionable remediation output.
@@ -111,7 +113,7 @@ If it cannot complete automatically, setup pauses and prints:
 - required redirect URI
 - explicit confirmation gate (`y`) before continuing
 
-If the app registration has zero configured permission entries (current scaffold default), setup skips the admin-consent gate and continues.
+If the app registration still has zero configured permission entries, setup skips the admin-consent gate and continues.
 
 ## Validation performed
 

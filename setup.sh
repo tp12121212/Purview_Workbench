@@ -341,6 +341,50 @@ ensure_sp_exists() {
   return 1
 }
 
+get_scope_id() {
+  local resource_app_id="$1"
+  local scope_value="$2"
+  az ad sp show --id "$resource_app_id" --query "oauth2PermissionScopes[?value=='$scope_value'].id | [0]" -o tsv 2>/dev/null || true
+}
+
+add_scope_permission_if_missing() {
+  local client_id="$1"
+  local resource_app_id="$2"
+  local scope_value="$3"
+  local scope_id output
+
+  scope_id="$(get_scope_id "$resource_app_id" "$scope_value")"
+  if [[ -z "$scope_id" ]]; then
+    warn "Scope '$scope_value' not found on resource app '$resource_app_id'; skipping."
+    return 0
+  fi
+
+  if output="$(az ad app permission add --id "$client_id" --api "$resource_app_id" --api-permissions "${scope_id}=Scope" 2>&1)"; then
+    log "Ensured delegated scope '$scope_value' on app $client_id"
+    return 0
+  fi
+
+  if echo "$output" | grep -Eqi "already exists|already assigned|permission being added already exists"; then
+    log "Delegated scope '$scope_value' already present on app $client_id"
+    return 0
+  fi
+
+  warn "Could not add scope '$scope_value' to app $client_id: $output"
+  return 0
+}
+
+ensure_baseline_permissions() {
+  local client_id="$1"
+  local graph_app_id="00000003-0000-0000-c000-000000000000"
+
+  log "Ensuring baseline delegated permissions for local scaffold."
+  add_scope_permission_if_missing "$client_id" "$graph_app_id" "openid"
+  add_scope_permission_if_missing "$client_id" "$graph_app_id" "profile"
+  add_scope_permission_if_missing "$client_id" "$graph_app_id" "email"
+  add_scope_permission_if_missing "$client_id" "$graph_app_id" "offline_access"
+  add_scope_permission_if_missing "$client_id" "$graph_app_id" "User.Read"
+}
+
 validate_entra_registration() {
   local client_id="$1"
   local _redirects_csv="$2"
@@ -500,6 +544,16 @@ entra_setup() {
 
         if validate_entra_registration "$selected_id" "$VITE_ENTRA_REDIRECT_URI,$API_ADMIN_CONSENT_REDIRECT_URI"; then
           ensure_sp_exists "$selected_id"
+          if [[ "${ENTRA_PERMISSION_COUNT:-0}" == "0" ]]; then
+            echo
+            warn "No permission entries found on existing app registration."
+            read -r -p "Add baseline delegated permissions now (openid/profile/email/offline_access/User.Read)? [Y/n]: " add_baseline
+            add_baseline="${add_baseline:-Y}"
+            if [[ "$add_baseline" =~ ^[Yy]$ ]]; then
+              ensure_baseline_permissions "$selected_id"
+              validate_entra_registration "$selected_id" "$VITE_ENTRA_REDIRECT_URI,$API_ADMIN_CONSENT_REDIRECT_URI" || true
+            fi
+          fi
           break
         fi
 
@@ -551,6 +605,7 @@ entra_setup() {
       az ad app update --id "$selected_id" --web-redirect-uris "$VITE_ENTRA_REDIRECT_URI" "$API_ADMIN_CONSENT_REDIRECT_URI" >/dev/null
       az ad app update --id "$selected_id" --identifier-uris "$VITE_API_AUDIENCE" >/dev/null
       ensure_sp_exists "$selected_id"
+      ensure_baseline_permissions "$selected_id"
 
       if ! validate_entra_registration "$selected_id" "$VITE_ENTRA_REDIRECT_URI,$API_ADMIN_CONSENT_REDIRECT_URI"; then
         err "Created app validation failed."

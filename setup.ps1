@@ -282,6 +282,50 @@ function Ensure-ServicePrincipal([string]$ClientId) {
   }
 }
 
+function Get-ScopeId([string]$ResourceAppId, [string]$ScopeValue) {
+  try {
+    return az ad sp show --id $ResourceAppId --query "oauth2PermissionScopes[?value=='$ScopeValue'].id | [0]" -o tsv
+  } catch {
+    return ''
+  }
+}
+
+function Add-ScopePermissionIfMissing([string]$ClientId, [string]$ResourceAppId, [string]$ScopeValue) {
+  $scopeId = Get-ScopeId -ResourceAppId $ResourceAppId -ScopeValue $ScopeValue
+  if (-not $scopeId) {
+    Write-Warn "Scope '$ScopeValue' not found on resource app '$ResourceAppId'; skipping."
+    return
+  }
+
+  $output = ''
+  try {
+    $output = az ad app permission add --id $ClientId --api $ResourceAppId --api-permissions "$scopeId=Scope" 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0) {
+      Write-Log "Ensured delegated scope '$ScopeValue' on app $ClientId"
+      return
+    }
+  } catch {
+    $output = $_.Exception.Message
+  }
+
+  if ($output -match 'already exists|already assigned|permission being added already exists') {
+    Write-Log "Delegated scope '$ScopeValue' already present on app $ClientId"
+    return
+  }
+
+  Write-Warn "Could not add scope '$ScopeValue' to app ${ClientId}: $output"
+}
+
+function Ensure-BaselinePermissions([string]$ClientId) {
+  $graphAppId = '00000003-0000-0000-c000-000000000000'
+  Write-Log 'Ensuring baseline delegated permissions for local scaffold.'
+  Add-ScopePermissionIfMissing -ClientId $ClientId -ResourceAppId $graphAppId -ScopeValue 'openid'
+  Add-ScopePermissionIfMissing -ClientId $ClientId -ResourceAppId $graphAppId -ScopeValue 'profile'
+  Add-ScopePermissionIfMissing -ClientId $ClientId -ResourceAppId $graphAppId -ScopeValue 'email'
+  Add-ScopePermissionIfMissing -ClientId $ClientId -ResourceAppId $graphAppId -ScopeValue 'offline_access'
+  Add-ScopePermissionIfMissing -ClientId $ClientId -ResourceAppId $graphAppId -ScopeValue 'User.Read'
+}
+
 function Validate-EntraRegistration([string]$ClientId) {
   $issues = New-Object System.Collections.Generic.List[string]
   try {
@@ -430,6 +474,14 @@ function Setup-Entra {
 
         if (Validate-EntraRegistration -ClientId $existingId) {
           Ensure-ServicePrincipal -ClientId $existingId
+          if ($script:EntraPermissionCount -eq 0) {
+            Write-Warn 'No permission entries found on existing app registration.'
+            $addBaseline = Read-Host 'Add baseline delegated permissions now (openid/profile/email/offline_access/User.Read)? [Y/n]'
+            if (-not $addBaseline -or $addBaseline -in @('y','Y')) {
+              Ensure-BaselinePermissions -ClientId $existingId
+              [void](Validate-EntraRegistration -ClientId $existingId)
+            }
+          }
           break
         }
 
@@ -466,6 +518,7 @@ function Setup-Entra {
       az ad app update --id $newId --web-redirect-uris $env:VITE_ENTRA_REDIRECT_URI $env:API_ADMIN_CONSENT_REDIRECT_URI | Out-Null
       az ad app update --id $newId --identifier-uris $env:VITE_API_AUDIENCE | Out-Null
       Ensure-ServicePrincipal -ClientId $newId
+      Ensure-BaselinePermissions -ClientId $newId
 
       if (-not (Validate-EntraRegistration -ClientId $newId)) {
         throw 'Created app validation failed. Review remediation output and rerun setup.'
