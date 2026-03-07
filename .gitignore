@@ -8,3 +8,6 @@ __pycache__/
 .venv/
 *.pyc
 .env
+
+apps/web/.env.local
+apps/api/.env
