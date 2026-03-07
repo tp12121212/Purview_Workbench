@@ -23,7 +23,7 @@ setup.cmd validate
 
 ### Running apps after setup
 
-Use the standard app commands after setup completes:
+Setup scripts now print these commands automatically after successful `full` or `validate` runs. You can also run them manually:
 
 ```bash
 pnpm --filter @purview/web dev

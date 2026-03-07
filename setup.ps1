@@ -542,6 +542,19 @@ function Run-Migrations {
   Write-Log 'Alembic migrations succeeded'
 }
 
+function Print-NextSteps {
+  Write-Host ''
+  Write-Host 'Next steps'
+  Write-Host '  1) Activate Python virtual environment:'
+  Write-Host '     .\.venv\Scripts\Activate.ps1'
+  Write-Host '  2) Start API (terminal 1):'
+  Write-Host '     .\.venv\Scripts\python.exe -m uvicorn src.main:app --reload --app-dir apps/api'
+  Write-Host '  3) Start Web (terminal 2):'
+  Write-Host '     pnpm --filter @purview/web dev'
+  Write-Host '  4) Start Worker (optional, terminal 3):'
+  Write-Host '     .\.venv\Scripts\python.exe apps/worker/src/main.py'
+}
+
 function Full-Setup {
   Ensure-Prereqs
   Ensure-Venv
@@ -552,9 +565,10 @@ function Full-Setup {
   Validate-Env
   Run-Migrations
   Write-Log 'Setup complete.'
+  Print-NextSteps
 }
 
 switch ($Mode) {
   'full' { Full-Setup }
-  'validate' { Ensure-Prereqs; Ensure-Venv; Validate-Env; Run-Migrations; Write-Log 'Validation complete' }
+  'validate' { Ensure-Prereqs; Ensure-Venv; Validate-Env; Run-Migrations; Write-Log 'Validation complete'; Print-NextSteps }
 }

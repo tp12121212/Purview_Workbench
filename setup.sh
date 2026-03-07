@@ -632,12 +632,26 @@ run_migrations() {
   log "Alembic migrations succeeded"
 }
 
+print_next_steps() {
+  echo
+  echo "Next steps"
+  echo "  1) Activate Python virtual environment:"
+  echo "     source .venv/bin/activate"
+  echo "  2) Start API (terminal 1):"
+  echo "     python -m uvicorn src.main:app --reload --app-dir apps/api"
+  echo "  3) Start Web (terminal 2):"
+  echo "     pnpm --filter @purview/web dev"
+  echo "  4) Start Worker (optional, terminal 3):"
+  echo "     python apps/worker/src/main.py"
+}
+
 validate_setup() {
   install_prerequisites
   setup_venv
   validate_env_consistency
   run_migrations
   log "Validation complete"
+  print_next_steps
 }
 
 full_setup() {
@@ -650,6 +664,7 @@ full_setup() {
   validate_env_consistency
   run_migrations
   log "Setup complete."
+  print_next_steps
 }
 
 case "$MODE" in
