@@ -4,6 +4,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
+if [[ -f ".env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 if [[ ! -d ".venv" ]]; then
   echo "[start] Missing .venv. Run ./setup.sh first."
   exit 1
@@ -21,6 +28,12 @@ cleanup() {
 }
 
 trap cleanup INT TERM EXIT
+
+echo "[start] Applying API migrations..."
+(
+  cd apps/api
+  ../../.venv/bin/python -m alembic upgrade head >/dev/null
+)
 
 (
   source .venv/bin/activate
