@@ -7,6 +7,7 @@ STATE_FILE="$STATE_DIR/state.env"
 mkdir -p "$STATE_DIR"
 
 MODE="${1:-full}"
+ENTRA_PERMISSION_COUNT=0
 
 log() { printf '[setup] %s\n' "$*"; }
 warn() { printf '[setup][warn] %s\n' "$*" >&2; }
@@ -386,6 +387,7 @@ validate_entra_registration() {
   fi
 
   perm_count="$(az ad app permission list --id "$client_id" --query 'length([])' -o tsv 2>/dev/null || echo 0)"
+  ENTRA_PERMISSION_COUNT="$perm_count"
   if [[ "$perm_count" == "0" ]]; then
     warn "No app permission entries found. This scaffold currently uses minimal delegated/dev token flow."
   fi
@@ -410,9 +412,21 @@ confirm_admin_consent() {
   local tenant_context="$2"
   local admin_consent_url="https://login.microsoftonline.com/${tenant_context}/adminconsent?client_id=${client_id}&redirect_uri=${API_ADMIN_CONSENT_REDIRECT_URI}"
   local consent_ok
+  local consent_output
 
-  if az ad app permission admin-consent --id "$client_id" >/dev/null 2>&1; then
+  if [[ "${ENTRA_PERMISSION_COUNT:-0}" == "0" ]]; then
+    warn "Skipping admin consent step because app registration has no configured permission entries."
+    return 0
+  fi
+
+  if consent_output="$(az ad app permission admin-consent --id "$client_id" 2>&1)"; then
     log "Admin consent granted automatically via Azure CLI."
+    return 0
+  fi
+
+  if echo "$consent_output" | grep -Eqi "AADSTS1003031|misconfigured"; then
+    warn "Admin consent endpoint returned misconfigured/no-required-permissions error."
+    warn "Proceeding because this scaffold currently has no mandatory permission grants."
     return 0
   fi
 

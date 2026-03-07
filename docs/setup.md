@@ -111,6 +111,8 @@ If it cannot complete automatically, setup pauses and prints:
 - required redirect URI
 - explicit confirmation gate (`y`) before continuing
 
+If the app registration has zero configured permission entries (current scaffold default), setup skips the admin-consent gate and continues.
+
 ## Validation performed
 
 - Python version is 3.12+

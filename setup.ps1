@@ -5,6 +5,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$script:EntraPermissionCount = 0
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $StateDir = Join-Path $Root '.setup'
 $StateFile = Join-Path $StateDir 'state.psd1'
@@ -316,10 +317,12 @@ function Validate-EntraRegistration([string]$ClientId) {
 
   try {
     $permCount = [int](az ad app permission list --id $ClientId --query 'length([])' -o tsv)
+    $script:EntraPermissionCount = $permCount
     if ($permCount -eq 0) {
       Write-Warn 'No app permission entries found. Current scaffold uses minimal delegated/dev token flow.'
     }
   } catch {
+    $script:EntraPermissionCount = 0
     Write-Warn 'Could not query app permissions. Continue with manual validation if needed.'
   }
 
@@ -339,13 +342,29 @@ function Validate-EntraRegistration([string]$ClientId) {
 }
 
 function Confirm-AdminConsent([string]$ClientId, [string]$TenantContext) {
-  try {
-    az ad app permission admin-consent --id $ClientId | Out-Null
-    Write-Log 'Admin consent granted automatically via Azure CLI.'
+  if ($script:EntraPermissionCount -eq 0) {
+    Write-Warn 'Skipping admin consent step because app registration has no configured permission entries.'
     return
-  } catch {
-    Write-Warn 'Automatic admin consent did not complete.'
   }
+
+  $consentOutput = ''
+  try {
+    $consentOutput = az ad app permission admin-consent --id $ClientId 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0) {
+      Write-Log 'Admin consent granted automatically via Azure CLI.'
+      return
+    }
+  } catch {
+    $consentOutput = $_.Exception.Message
+  }
+
+  if ($consentOutput -match 'AADSTS1003031|misconfigured') {
+    Write-Warn 'Admin consent endpoint returned misconfigured/no-required-permissions error.'
+    Write-Warn 'Proceeding because this scaffold currently has no mandatory permission grants.'
+    return
+  }
+
+  Write-Warn 'Automatic admin consent did not complete.'
 
   $adminUrl = "https://login.microsoftonline.com/$TenantContext/adminconsent?client_id=$ClientId&redirect_uri=$($env:API_ADMIN_CONSENT_REDIRECT_URI)"
   Write-Host 'Manual admin consent is required before setup can continue.'
