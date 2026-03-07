@@ -22,3 +22,5 @@ secrets*.json
 apps/web/.env.local
 apps/api/.env
 .DS_Store
+
+/error.log
