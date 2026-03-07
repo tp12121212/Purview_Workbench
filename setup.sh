@@ -203,21 +203,24 @@ write_env_files() {
   local api_client_id api_tenant_mode api_audience api_db_url api_consent_redirect
 
   echo
-  echo "Environment configuration"
-  echo "  The script only prompts when a required value has no existing/default value."
-  echo "  Existing values are preserved; safe defaults are auto-applied."
+  echo "Environment configuration (non-Entra values first)"
+  echo "  Entra app registration selection/validation happens in the next step."
 
-  vite_client_id=$(prompt_env_value "VITE_ENTRA_CLIENT_ID" "$(extract_env_value "$current_root" "VITE_ENTRA_CLIENT_ID")" "Client/Application (app) ID for the Entra app registration used by the web app. Use the App ID (GUID) from Microsoft Entra app registration." "" "yes")
-  vite_authority=$(prompt_env_value "VITE_ENTRA_AUTHORITY" "$(extract_env_value "$current_root" "VITE_ENTRA_AUTHORITY")" "Authority URL for sign-in. For multi-tenant, use https://login.microsoftonline.com/common." "https://login.microsoftonline.com/common")
-  vite_redirect=$(prompt_env_value "VITE_ENTRA_REDIRECT_URI" "$(extract_env_value "$current_root" "VITE_ENTRA_REDIRECT_URI")" "Web redirect URI configured in the Entra app registration for local development." "http://localhost:5173")
-  vite_audience=$(prompt_env_value "VITE_API_AUDIENCE" "$(extract_env_value "$current_root" "VITE_API_AUDIENCE")" "API Application ID URI (audience), typically api://<app-client-id>." "api://purview-workbench")
+  vite_client_id="$(extract_env_value "$current_root" "VITE_ENTRA_CLIENT_ID")"
+  vite_authority="$(extract_env_value "$current_root" "VITE_ENTRA_AUTHORITY")"
+  vite_redirect="$(extract_env_value "$current_root" "VITE_ENTRA_REDIRECT_URI")"
+  vite_audience="$(extract_env_value "$current_root" "VITE_API_AUDIENCE")"
+  api_client_id="$(extract_env_value "$current_root" "API_ENTRA_CLIENT_ID")"
+  api_audience="$(extract_env_value "$current_root" "API_ALLOWED_AUDIENCE")"
+  api_consent_redirect="$(extract_env_value "$current_root" "API_ADMIN_CONSENT_REDIRECT_URI")"
+
+  vite_authority="${vite_authority:-https://login.microsoftonline.com/common}"
+  vite_redirect="${vite_redirect:-http://localhost:5173}"
+  vite_audience="${vite_audience:-api://purview-workbench}"
+  api_consent_redirect="${api_consent_redirect:-${vite_redirect%/}/auth/consent-complete}"
   vite_api_base=$(prompt_env_value "VITE_API_BASE_URL" "$(extract_env_value "$current_root" "VITE_API_BASE_URL")" "Base URL for local API used by the web app." "http://localhost:8000")
-
-  api_client_id=$(prompt_env_value "API_ENTRA_CLIENT_ID" "$(extract_env_value "$current_root" "API_ENTRA_CLIENT_ID")" "Same Entra app Client ID used by API token validation." "$vite_client_id" "yes")
   api_tenant_mode=$(prompt_env_value "API_ENTRA_TENANT_MODE" "$(extract_env_value "$current_root" "API_ENTRA_TENANT_MODE")" "Tenant mode from architecture. Keep as multi-tenant unless intentionally changing design." "multi-tenant")
-  api_audience=$(prompt_env_value "API_ALLOWED_AUDIENCE" "$(extract_env_value "$current_root" "API_ALLOWED_AUDIENCE")" "Expected JWT audience validated by API; should match VITE_API_AUDIENCE." "$vite_audience")
   api_db_url=$(prompt_env_value "API_DATABASE_URL" "$(extract_env_value "$current_root" "API_DATABASE_URL")" "SQLAlchemy DB URL. SQLite default is suitable for local development." "sqlite:///./purview_workbench.db")
-  api_consent_redirect=$(prompt_env_value "API_ADMIN_CONSENT_REDIRECT_URI" "$(extract_env_value "$current_root" "API_ADMIN_CONSENT_REDIRECT_URI")" "Frontend redirect route used after admin consent completion." "${vite_redirect%/}/auth/consent-complete")
 
   cat >"$root_env" <<ENV
 VITE_ENTRA_CLIENT_ID=$vite_client_id
@@ -393,7 +396,8 @@ validate_entra_registration() {
 
 confirm_admin_consent() {
   local client_id="$1"
-  local admin_consent_url="https://login.microsoftonline.com/common/adminconsent?client_id=${client_id}&redirect_uri=${API_ADMIN_CONSENT_REDIRECT_URI}"
+  local tenant_context="$2"
+  local admin_consent_url="https://login.microsoftonline.com/${tenant_context}/adminconsent?client_id=${client_id}&redirect_uri=${API_ADMIN_CONSENT_REDIRECT_URI}"
   local consent_ok
 
   if az ad app permission admin-consent --id "$client_id" >/dev/null 2>&1; then
@@ -418,9 +422,19 @@ confirm_admin_consent() {
 
 entra_setup() {
   load_dotenv
-  local flow_choice existing_choice app_name selected_id
+  local flow_choice existing_choice app_name selected_id tenant_context current_tenant_id
 
   require_az_cli_session
+  current_tenant_id="$(az account show --query tenantId -o tsv 2>/dev/null || echo "")"
+  tenant_context="common"
+
+  echo
+  echo "Microsoft Entra ID app registration is required for this application."
+  echo "Why this is needed:"
+  echo "  - Web auth configuration requires an Entra application client ID."
+  echo "  - API token audience/client checks depend on the same app registration."
+  echo "  - Admin consent is required for tenant-scoped protected actions."
+  echo "This setup step configures and validates the registration before Entra env values are finalized."
 
   while true; do
     echo
@@ -438,6 +452,12 @@ entra_setup() {
     if [[ "$flow_choice" == "A" ]]; then
       while true; do
         echo
+        read -r -p "Tenant ID for validation/admin-consent URL context [${current_tenant_id:-common}]: " tenant_context
+        tenant_context="${tenant_context:-${current_tenant_id:-common}}"
+        if [[ -n "$current_tenant_id" && "$tenant_context" != "common" && "$tenant_context" != "$current_tenant_id" ]]; then
+          warn "Provided tenant ID differs from current Azure CLI tenant ($current_tenant_id)."
+        fi
+
         read -r -p "Existing Entra app client ID [${VITE_ENTRA_CLIENT_ID}]: " selected_id
         selected_id="${selected_id:-$VITE_ENTRA_CLIENT_ID}"
         if ! is_guid_like "$selected_id"; then
@@ -462,12 +482,16 @@ entra_setup() {
         echo "Validation failed. Next action:"
         echo "  R) retry existing app values after remediation"
         echo "  S) switch to create-new flow"
+        echo "  C) continue after manual fixes (best-effort)"
         echo "  Q) quit setup now"
-        read -r -p "Choose [R/S/Q] (default R): " existing_choice
+        read -r -p "Choose [R/S/C/Q] (default R): " existing_choice
         existing_choice="${existing_choice:-R}"
         existing_choice="${existing_choice^^}"
         if [[ "$existing_choice" == "S" ]]; then
           flow_choice="B"
+          break
+        elif [[ "$existing_choice" == "C" ]]; then
+          warn "Continuing with user-confirmed manual fixes."
           break
         elif [[ "$existing_choice" == "Q" ]]; then
           err "Setup aborted by user."
@@ -481,6 +505,8 @@ entra_setup() {
     fi
 
     if [[ "$flow_choice" == "B" ]]; then
+      read -r -p "Tenant ID for app creation/admin-consent URL context [${current_tenant_id:-common}]: " tenant_context
+      tenant_context="${tenant_context:-${current_tenant_id:-common}}"
       read -r -p "New app registration name [PurviewWorkbench-Local]: " app_name
       app_name="${app_name:-PurviewWorkbench-Local}"
 
@@ -512,7 +538,7 @@ entra_setup() {
     err "Invalid choice. Enter A or B."
   done
 
-  confirm_admin_consent "$VITE_ENTRA_CLIENT_ID"
+  confirm_admin_consent "$VITE_ENTRA_CLIENT_ID" "$tenant_context"
   write_env_bundle
   log "Updated .env, apps/web/.env.local, and apps/api/.env with validated Entra settings"
 }
@@ -540,8 +566,8 @@ full_setup() {
   install_python_deps_if_needed
   install_js_deps_if_needed
   write_env_files
-  validate_env_consistency
   entra_setup
+  validate_env_consistency
   run_migrations
   log "Setup complete."
 }
