@@ -8,6 +8,16 @@ __pycache__/
 .venv/
 *.pyc
 .env
+.env.*
+!.env.example
+*.log
+.setup/
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+secrets*.json
 
 apps/web/.env.local
 apps/api/.env
