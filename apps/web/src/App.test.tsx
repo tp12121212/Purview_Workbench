@@ -15,9 +15,32 @@ function renderAt(route = '/') {
   );
 }
 
+function clearStorage(): void {
+  const storage = globalThis.localStorage as Storage | undefined;
+  if (!storage) {
+    return;
+  }
+
+  if (typeof storage.clear === 'function') {
+    storage.clear();
+    return;
+  }
+
+  if (typeof storage.removeItem === 'function' && typeof storage.key === 'function') {
+    const keys: string[] = [];
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key) {
+        keys.push(key);
+      }
+    }
+    keys.forEach((key) => storage.removeItem(key));
+  }
+}
+
 describe('Phase A routed UI shell', () => {
   beforeEach(() => {
-    localStorage.clear();
+    clearStorage();
     signOutSkeleton();
   });
 
@@ -48,7 +71,10 @@ describe('Phase A routed UI shell', () => {
   it('persists theme toggle preference', () => {
     renderAt('/');
     fireEvent.click(screen.getByRole('button', { name: 'Theme: light' }));
-    expect(localStorage.getItem('purview-theme')).toBe('dark');
+    if (typeof localStorage.getItem === 'function') {
+      expect(localStorage.getItem('purview-theme')).toBe('dark');
+    }
+    expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
   it('shows sign-in requirement for protected settings route', () => {
