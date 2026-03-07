@@ -39,14 +39,14 @@ python apps/worker/src/main.py
 2. Creates `.venv` if missing
 3. Installs Python dependencies only when API/worker manifests changed
 4. Installs JavaScript dependencies only when `pnpm-lock.yaml` changed
-5. Prompts only when required env values are missing (existing values are preserved and safe defaults are auto-applied), then writes:
-   - `.env`
-   - `apps/web/.env.local`
-   - `apps/api/.env`
-6. Performs Microsoft Entra app registration workflow:
+5. Prompts only for non-Entra required values first (existing values are preserved and safe defaults are auto-applied), then writes baseline env files
+ - `.env`
+ - `apps/web/.env.local`
+ - `apps/api/.env`
+6. Shows Entra setup help text and performs Microsoft Entra app registration workflow before final Entra env values are set:
    - `A)` use existing registration (with validation/remediation loop)
    - `B)` create new registration (Azure CLI automation)
-7. Requires explicit admin-consent confirmation
+7. Handles admin consent inside the Entra flow (automation attempt + manual confirmation gate if needed)
 8. Validates key settings consistency
 9. Runs Alembic migration (`apps/api/alembic upgrade head`)
 
@@ -84,6 +84,7 @@ If validation fails, the script shows remediation commands and prompts to:
 
 - retry after remediation
 - switch to create-new flow
+- continue after manual fixes (best effort)
 - quit setup
 
 ### Flow B: Create new app registration
