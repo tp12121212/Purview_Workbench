@@ -8,9 +8,6 @@ Use the integrated setup scripts for end-to-end local bootstrap and run modes:
 
 ```bash
 ./setup.sh
-./setup.sh run-api
-./setup.sh run-web
-./setup.sh run-worker
 ./setup.sh validate
 ```
 
@@ -18,9 +15,6 @@ Windows:
 
 ```powershell
 setup.cmd
-setup.cmd run-api
-setup.cmd run-web
-setup.cmd run-worker
 setup.cmd validate
 ```
 
