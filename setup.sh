@@ -635,14 +635,14 @@ run_migrations() {
 print_next_steps() {
   echo
   echo "Next steps"
-  echo "  1) Activate Python virtual environment:"
-  echo "     source .venv/bin/activate"
-  echo "  2) Start API (terminal 1):"
-  echo "     python -m uvicorn src.main:app --reload --app-dir apps/api"
-  echo "  3) Start Web (terminal 2):"
-  echo "     pnpm --filter @purview/web dev"
-  echo "  4) Start Worker (optional, terminal 3):"
-  echo "     python apps/worker/src/main.py"
+  echo "  Terminal 1 (API):"
+  echo "    source .venv/bin/activate"
+  echo "    python -m uvicorn src.main:app --reload --app-dir apps/api"
+  echo "  Terminal 2 (Web):"
+  echo "    pnpm --filter @purview/web dev"
+  echo "  Terminal 3 (Worker, optional):"
+  echo "    source .venv/bin/activate"
+  echo "    python apps/worker/src/main.py"
 }
 
 validate_setup() {

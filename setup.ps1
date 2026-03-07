@@ -545,14 +545,14 @@ function Run-Migrations {
 function Print-NextSteps {
   Write-Host ''
   Write-Host 'Next steps'
-  Write-Host '  1) Activate Python virtual environment:'
-  Write-Host '     .\.venv\Scripts\Activate.ps1'
-  Write-Host '  2) Start API (terminal 1):'
-  Write-Host '     .\.venv\Scripts\python.exe -m uvicorn src.main:app --reload --app-dir apps/api'
-  Write-Host '  3) Start Web (terminal 2):'
-  Write-Host '     pnpm --filter @purview/web dev'
-  Write-Host '  4) Start Worker (optional, terminal 3):'
-  Write-Host '     .\.venv\Scripts\python.exe apps/worker/src/main.py'
+  Write-Host '  Terminal 1 (API):'
+  Write-Host '    .\.venv\Scripts\Activate.ps1'
+  Write-Host '    python -m uvicorn src.main:app --reload --app-dir apps/api'
+  Write-Host '  Terminal 2 (Web):'
+  Write-Host '    pnpm --filter @purview/web dev'
+  Write-Host '  Terminal 3 (Worker, optional):'
+  Write-Host '    .\.venv\Scripts\Activate.ps1'
+  Write-Host '    python apps/worker/src/main.py'
 }
 
 function Full-Setup {
