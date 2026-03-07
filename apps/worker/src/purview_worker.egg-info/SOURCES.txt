@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+src/main.py
+src/auth/token_guard.py
+src/jobs/dispatcher.py
+src/output/serialize_output.py
+src/purview_worker.egg-info/PKG-INFO
+src/purview_worker.egg-info/SOURCES.txt
+src/purview_worker.egg-info/dependency_links.txt
+src/purview_worker.egg-info/requires.txt
+src/purview_worker.egg-info/top_level.txt

@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: purview-api
+Version: 0.1.0
+Summary: Phase 1 FastAPI API scaffold
+Requires-Python: >=3.12
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn>=0.30.6
+Requires-Dist: pydantic>=2.9.2
+Requires-Dist: sqlalchemy>=2.0.35
+Requires-Dist: alembic>=1.13.3
