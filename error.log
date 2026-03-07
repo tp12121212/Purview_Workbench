@@ -1,0 +1,21 @@
+[2026-03-06T23:52:07.060506+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-03-06T23:52:07.104193+00:00] auth: mode=ChatGPT account_id=588df3ff-16f6-4d12-8fc6-37f02008a2ae
+[2026-03-06T23:52:07.104246+00:00] auth: set ChatGPT-Account-Id header: 588df3ff-16f6-4d12-8fc6-37f02008a2ae
+[2026-03-06T23:52:07.104873+00:00] startup: wham_force_internal=false ua=codex_cli_rs/0.98.0 (Mac OS 26.4.0; arm64) Apple_Terminal/468 (codex_cloud_tasks_tui)
+[2026-03-06T23:52:07.145860+00:00] env: parsed HTTP GitHub origin => tp12121212/Purview_Workbench
+[2026-03-06T23:52:07.146070+00:00] env: git origins: ["https://github.com/tp12121212/Purview_Workbench.git"]
+[2026-03-06T23:52:07.146108+00:00] env: parsed HTTP GitHub origin => tp12121212/Purview_Workbench
+[2026-03-06T23:52:07.146133+00:00] env: GET https://chatgpt.com/backend-api/wham/environments/by-repo/github/tp12121212/Purview_Workbench
+[2026-03-06T23:52:07.699342+00:00] http.list_tasks: env=<all> limit=20 cursor_in=<none> cursor_out=+RID:~G4U-AJOIzhn9TjcDAEiWDg==#RT:1#TRC:20#RTD:FFMNeBmc06hP2994zep3KwV2dGZzLnp6aDpZN0I1cltxeltCT017NHhnTjRRYgAFdnRmcy56emg6WTdCNXJbcXpbQk9NezR4Z040UWIABUJkZHB2b3VWdGZzVXBEdnNzZm91RHBlZlVidGxGeXVmc29ibQAD+szOzMjRzs3RzMWqzsjEzM7Ey8bQzM7KzMvG087OxM7O//qKnYuTn5mfyMXHnZiby8jLys6bxsvMmMbFysmZms3GmZ2YnZuamsr/#ISV:2#IEO:65567#QCF:8#CID:2 items=20
+[2026-03-06T23:52:07.699565+00:00] refresh.apply: env=<all> count=8
+[2026-03-06T23:52:08.715513+00:00] env: status=200 OK content-type=application/json
+[2026-03-06T23:52:09.532672+00:00] env: status=200 OK content-type=application/json
+[2026-03-06T23:52:10.150037+00:00] env: status=200 OK content-type=application/json
+[2026-03-06T23:52:10.150192+00:00] env: by-repo returned 1 env(s) for tp12121212/Purview_Workbench
+[2026-03-06T23:52:10.150248+00:00] env: single environment available; selecting it
+[2026-03-06T23:52:10.150324+00:00] env.select: autodetected id=69a8460460588191abed14d4c75032da label=tp12121212/Purview_Workbench
+[2026-03-06T23:52:10.215753+00:00] env: parsed HTTP GitHub origin => tp12121212/Purview_Workbench
+[2026-03-06T23:52:10.627281+00:00] http.list_tasks: env=69a8460460588191abed14d4c75032da limit=20 cursor_in=<none> cursor_out=+RID:~G4U-AJOIzhn9TjcDAEiWDg==#RT:1#TRC:20#RTD:FFMNeBmc06hP2994zep3KwV2dGZzLnp6aDpZN0I1cltxeltCT017NHhnTjRRYgAFdnRmcy56emg6WTdCNXJbcXpbQk9NezR4Z040UWIABUJkZHB2b3VWdGZzVXBEdnNzZm91RHBlZlVidGxGeXVmc29ibQAD+szOzMjRzs3RzMWqzsjEzM7Ey8bQzM7KzMvG087OxM7O//qKnYuTn5mfyMXHnZiby8jLys6bxsvMmMbFysmZms3GmZ2YnZuamsr/#ISV:2#IEO:65567#QCF:8#CID:2 items=20
+[2026-03-06T23:52:10.627414+00:00] refresh.apply: env=69a8460460588191abed14d4c75032da count=8
+[2026-03-06T23:52:12.650891+00:00] env: status=200 OK content-type=application/json
+[2026-03-06T23:52:13.049994+00:00] env: status=200 OK content-type=application/json
