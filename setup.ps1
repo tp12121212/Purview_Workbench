@@ -1,6 +1,6 @@
 param(
   [Parameter(Position = 0)]
-  [ValidateSet('full','run-api','run-web','run-worker','validate')]
+  [ValidateSet('full','validate')]
   [string]$Mode = 'full'
 )
 
@@ -433,10 +433,6 @@ function Run-Migrations {
   Write-Log 'Alembic migrations succeeded'
 }
 
-function Run-Api { Import-RootEnv; Push-Location $Root; & (Join-Path $Root '.venv/Scripts/python.exe') -m uvicorn src.main:app --reload --app-dir apps/api; Pop-Location }
-function Run-Web { Push-Location $Root; pnpm --filter @purview/web dev; Pop-Location }
-function Run-Worker { Import-RootEnv; Push-Location $Root; & (Join-Path $Root '.venv/Scripts/python.exe') apps/worker/src/main.py; Pop-Location }
-
 function Full-Setup {
   Ensure-Prereqs
   Ensure-Venv
@@ -446,13 +442,10 @@ function Full-Setup {
   Validate-Env
   Setup-Entra
   Run-Migrations
-  Write-Log "Setup complete. Use '.\\setup.cmd run-api' and '.\\setup.cmd run-web'."
+  Write-Log 'Setup complete.'
 }
 
 switch ($Mode) {
   'full' { Full-Setup }
-  'run-api' { Run-Api }
-  'run-web' { Run-Web }
-  'run-worker' { Run-Worker }
   'validate' { Ensure-Prereqs; Ensure-Venv; Validate-Env; Run-Migrations; Write-Log 'Validation complete' }
 }

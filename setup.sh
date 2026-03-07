@@ -534,27 +534,6 @@ validate_setup() {
   log "Validation complete"
 }
 
-run_api() {
-  load_dotenv
-  # shellcheck disable=SC1091
-  source "$ROOT_DIR/.venv/bin/activate"
-  cd "$ROOT_DIR"
-  exec python -m uvicorn src.main:app --reload --app-dir apps/api
-}
-
-run_web() {
-  cd "$ROOT_DIR"
-  exec pnpm --filter @purview/web dev
-}
-
-run_worker() {
-  load_dotenv
-  # shellcheck disable=SC1091
-  source "$ROOT_DIR/.venv/bin/activate"
-  cd "$ROOT_DIR"
-  exec python apps/worker/src/main.py
-}
-
 full_setup() {
   install_prerequisites
   setup_venv
@@ -564,18 +543,15 @@ full_setup() {
   validate_env_consistency
   entra_setup
   run_migrations
-  log "Setup complete. Use './setup.sh run-api' and './setup.sh run-web'."
+  log "Setup complete."
 }
 
 case "$MODE" in
   full) full_setup ;;
-  run-api) run_api ;;
-  run-web) run_web ;;
-  run-worker) run_worker ;;
   validate) validate_setup ;;
   *)
     err "Unknown mode: $MODE"
-    err "Usage: ./setup.sh [run-api|run-web|run-worker|validate]"
+    err "Usage: ./setup.sh [validate]"
     exit 1
     ;;
 esac

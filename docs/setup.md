@@ -11,9 +11,6 @@ This repository includes cross-platform setup entry points:
 
 ```bash
 ./setup.sh
-./setup.sh run-api
-./setup.sh run-web
-./setup.sh run-worker
 ./setup.sh validate
 ```
 
@@ -21,10 +18,17 @@ This repository includes cross-platform setup entry points:
 
 ```powershell
 setup.cmd
-setup.cmd run-api
-setup.cmd run-web
-setup.cmd run-worker
 setup.cmd validate
+```
+
+### Running apps after setup
+
+Use the standard app commands after setup completes:
+
+```bash
+pnpm --filter @purview/web dev
+python -m uvicorn src.main:app --reload --app-dir apps/api
+python apps/worker/src/main.py
 ```
 
 ## What full setup does
