@@ -447,7 +447,7 @@ entra_setup() {
     echo "     - Script sets redirect URIs, identifier URI, and service principal"
     read -r -p "Choose [A/B] (default A): " flow_choice
     flow_choice="${flow_choice:-A}"
-    flow_choice="${flow_choice^^}"
+    flow_choice="$(printf '%s' "$flow_choice" | tr '[:lower:]' '[:upper:]')"
 
     if [[ "$flow_choice" == "A" ]]; then
       while true; do
@@ -486,7 +486,7 @@ entra_setup() {
         echo "  Q) quit setup now"
         read -r -p "Choose [R/S/C/Q] (default R): " existing_choice
         existing_choice="${existing_choice:-R}"
-        existing_choice="${existing_choice^^}"
+        existing_choice="$(printf '%s' "$existing_choice" | tr '[:lower:]' '[:upper:]')"
         if [[ "$existing_choice" == "S" ]]; then
           flow_choice="B"
           break
