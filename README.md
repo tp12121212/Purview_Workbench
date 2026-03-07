@@ -2,6 +2,30 @@
 
 This repository implements the Phase 0 scaffold and Phase 1 auth/onboarding + tenancy persistence from `spec/build-pack/v0.1`.
 
+## One-command setup
+
+Use the integrated setup scripts for end-to-end local bootstrap and run modes:
+
+```bash
+./setup.sh
+./setup.sh run-api
+./setup.sh run-web
+./setup.sh run-worker
+./setup.sh validate
+```
+
+Windows:
+
+```powershell
+setup.cmd
+setup.cmd run-api
+setup.cmd run-web
+setup.cmd run-worker
+setup.cmd validate
+```
+
+See `docs/setup.md` for full details, Entra app registration modes, and limitations.
+
 ## Workspace commands
 
 ```bash
