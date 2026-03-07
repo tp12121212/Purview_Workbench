@@ -12,7 +12,7 @@ if str(SRC_PATH) not in sys.path:
     sys.path.append(str(SRC_PATH))
 
 from db.base import Base  # noqa: E402
-from models import tenant, tenant_membership, user  # noqa: E402,F401
+from models import pattern_template, tenant, tenant_membership, user  # noqa: E402,F401
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
