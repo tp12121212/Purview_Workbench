@@ -11,3 +11,4 @@ __pycache__/
 
 apps/web/.env.local
 apps/api/.env
+.DS_Store
