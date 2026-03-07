@@ -35,21 +35,20 @@ setup.cmd validate
 2. Creates `.venv` if missing
 3. Installs Python dependencies only when API/worker manifests changed
 4. Installs JavaScript dependencies only when `pnpm-lock.yaml` changed
-5. Prompts for required env values and writes:
+5. Prompts only when required env values are missing (existing values are preserved and safe defaults are auto-applied), then writes:
    - `.env`
    - `apps/web/.env.local`
    - `apps/api/.env`
 6. Performs Microsoft Entra app registration workflow:
-   - Use existing registration
-   - Automatic creation/configuration (Azure CLI)
-   - Manual creation instructions
+   - `A)` use existing registration (with validation/remediation loop)
+   - `B)` create new registration (Azure CLI automation)
 7. Requires explicit admin-consent confirmation
 8. Validates key settings consistency
 9. Runs Alembic migration (`apps/api/alembic upgrade head`)
 
 ## Required environment values
 
-The setup scripts prompt for and preserve existing values where available:
+The setup scripts preserve existing values and automatically apply safe defaults where available. They only prompt for values that are required and have no default:
 
 - `VITE_ENTRA_CLIENT_ID`
 - `VITE_ENTRA_AUTHORITY`
@@ -62,24 +61,48 @@ The setup scripts prompt for and preserve existing values where available:
 - `API_DATABASE_URL`
 - `API_ADMIN_CONSENT_REDIRECT_URI`
 
+All interactive prompts include detailed help text describing what each option/value means and when to use it.
+
 ## Microsoft Entra setup details
 
-### Automatic mode
+### Flow A: Use existing app registration
+
+The script prompts for the existing client ID and validates:
+
+- app registration exists
+- sign-in audience is `AzureADMultipleOrgs`
+- required redirect URIs are configured
+- identifier URI matches expected API audience
+- service principal exists
+- permission entries are queryable (warns if empty for current scaffold)
+
+If validation fails, the script shows remediation commands and prompts to:
+
+- retry after remediation
+- switch to create-new flow
+- quit setup
+
+### Flow B: Create new app registration
 
 Uses Azure CLI (`az`) to:
 
-- create the app registration if missing
-- enforce `AzureADMultipleOrgs` sign-in audience
-- configure web/admin-consent redirect URIs
-- configure API identifier URI
+- create a new app registration (default name `PurviewWorkbench-Local`, customizable)
+- configure `AzureADMultipleOrgs` sign-in audience
+- configure required redirect URIs
+- configure identifier URI (API audience)
 - ensure service principal exists
-- attempt admin-consent automation
+- validate created registration with the same checks as Flow A
 
-If admin-consent automation fails, the script prints the consent URL and requires confirmation before continuing.
+If any required step cannot be validated, setup fails with actionable remediation output.
 
-### Manual mode
+### Admin consent
 
-The script prints exact `az` commands and expected values, then waits for user confirmation.
+The script attempts `az ad app permission admin-consent` first.  
+If it cannot complete automatically, setup pauses and prints:
+
+- exact admin-consent URL
+- required redirect URI
+- explicit confirmation gate (`y`) before continuing
 
 ## Validation performed
 
@@ -87,6 +110,7 @@ The script prints exact `az` commands and expected values, then waits for user c
 - Required env values exist
 - `VITE_API_AUDIENCE` equals `API_ALLOWED_AUDIENCE`
 - warns if `API_ENTRA_TENANT_MODE != multi-tenant`
+- Entra app registration checks listed above
 - Alembic migration completes
 
 ## Limitations and assumptions
@@ -96,3 +120,4 @@ The script prints exact `az` commands and expected values, then waits for user c
 - The setup scripts do not store secrets in git-tracked files.
 - API environment variables are sourced by setup run commands and mirrored into `apps/api/.env` for operator clarity.
 - Current scaffold does not declare additional API permissions beyond app registration and consent flow, so permission-specific enforcement is limited to app/SP/consent validation.
+- Entra validation is Azure CLI based; if `az` lacks tenant/application read permissions, validation may require operator remediation and rerun.
