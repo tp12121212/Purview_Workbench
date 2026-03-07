@@ -87,6 +87,8 @@ If validation fails, the script shows remediation commands and prompts to:
 - continue after manual fixes (best effort)
 - quit setup
 
+Note: if `az ad sp create` returns "service principal name ... is already in use", treat this as an already-existing service principal for this app and continue.
+
 ### Flow B: Create new app registration
 
 Uses Azure CLI (`az`) to:

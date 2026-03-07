@@ -323,11 +323,21 @@ require_az_cli_session() {
 
 ensure_sp_exists() {
   local client_id="$1"
+  local create_output
   if az ad sp show --id "$client_id" >/dev/null 2>&1; then
     return 0
   fi
   warn "Service principal was missing; creating it now."
-  az ad sp create --id "$client_id" >/dev/null
+  if create_output="$(az ad sp create --id "$client_id" 2>&1)"; then
+    return 0
+  fi
+  if echo "$create_output" | grep -qi "already in use"; then
+    warn "Service principal appears to already exist (Azure CLI returned 'already in use'). Continuing."
+    return 0
+  fi
+  err "Failed to create service principal for $client_id"
+  err "$create_output"
+  return 1
 }
 
 validate_entra_registration() {
@@ -386,7 +396,8 @@ validate_entra_registration() {
     echo "  az ad app update --id \"$client_id\" --sign-in-audience AzureADMultipleOrgs"
     echo "  az ad app update --id \"$client_id\" --web-redirect-uris \"$VITE_ENTRA_REDIRECT_URI\" \"$API_ADMIN_CONSENT_REDIRECT_URI\""
     echo "  az ad app update --id \"$client_id\" --identifier-uris \"$VITE_API_AUDIENCE\""
-    echo "  az ad sp create --id \"$client_id\""
+    echo "  az ad sp show --id \"$client_id\" || az ad sp create --id \"$client_id\""
+    echo "  # If create returns 'already in use', treat that as already existing."
     return 1
   fi
 

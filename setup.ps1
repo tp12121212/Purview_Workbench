@@ -266,7 +266,18 @@ function Ensure-ServicePrincipal([string]$ClientId) {
     az ad sp show --id $ClientId | Out-Null
   } catch {
     Write-Warn "Service principal missing for $ClientId; creating it now."
-    az ad sp create --id $ClientId | Out-Null
+    $createOutput = ''
+    try {
+      $createOutput = az ad sp create --id $ClientId 2>&1 | Out-String
+    } catch {
+      $createOutput = $_.Exception.Message
+    }
+    if ($LASTEXITCODE -eq 0) { return }
+    if ($createOutput -match 'already in use') {
+      Write-Warn "Service principal appears to already exist (Azure CLI returned 'already in use'). Continuing."
+      return
+    }
+    throw "Failed to create service principal for $ClientId. $createOutput"
   }
 }
 
@@ -318,7 +329,8 @@ function Validate-EntraRegistration([string]$ClientId) {
     Write-Host "  az ad app update --id `"$ClientId`" --sign-in-audience AzureADMultipleOrgs"
     Write-Host "  az ad app update --id `"$ClientId`" --web-redirect-uris `"$($env:VITE_ENTRA_REDIRECT_URI)`" `"$($env:API_ADMIN_CONSENT_REDIRECT_URI)`""
     Write-Host "  az ad app update --id `"$ClientId`" --identifier-uris `"$($env:VITE_API_AUDIENCE)`""
-    Write-Host "  az ad sp create --id `"$ClientId`""
+    Write-Host "  az ad sp show --id `"$ClientId`" || az ad sp create --id `"$ClientId`""
+    Write-Host "  # If create returns 'already in use', treat that as already existing."
     return $false
   }
 
